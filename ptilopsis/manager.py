@@ -9,9 +9,11 @@ from urllib.parse import urlencode, quote
 
 import logging
 
+collection_key = 'onedrive'
+
 class OneDriveManager(object):
     db = Firebase()
-    collection = db.collection('onedrive')
+    collection = db.collection(collection_key)
     initialize = True
 
     access_token = None
@@ -92,7 +94,7 @@ class OneDriveManager(object):
                     'expires_at': time.time() + r['expires_in'],
                     'folder_path': ''
                 }
-                document = Firebase().collection(config.FIREBASE_NAME).document(user_id)
+                document = Firebase().collection(collection_key).document(user_id)
                 if not await document.exists():
                     await document.insert(user_id, user_token_info)
                 else:
