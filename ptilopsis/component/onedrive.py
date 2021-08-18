@@ -39,7 +39,7 @@ class OneDriveManager(object):
         # https://docs.microsoft.com/zh-cn/graph/api/driveitem-get?view=graph-rest-1.0&tabs=http
         # by path
         
-        api = 'https://graph.microsoft.com/v1.0/me/drive/root:' + folder_path
+        api = 'https://graph.microsoft.com/v1.0/me/drive/' + self._path_in_api_url(folder_path)
         r = await self._request('GET', api)
         if 'error' in r.keys():
             return False
@@ -93,7 +93,7 @@ class OneDriveManager(object):
                 if not await document.exists():
                     await document.set(user_token_info)
                     # corresponding to init, or init causes KeyError
-                    await document.set({'folder_path': ''}, merge=True)
+                    await document.set({'folder_path': '/'}, merge=True)
                 else:
                     await document.update(user_token_info)
             except Exception as error:
@@ -141,6 +141,7 @@ class OneDriveManager(object):
     async def upload(self, file_path:str):
         file_name = file_path.split('/')[-1]
         file_size = os.path.getsize(file_path)
+        file_cloud_path = self.folder_path + f'/{file_name}'
 
         #create_file_api = 'https://graph.microsoft.com/v1.0/me/drive/root:' + self.folder_path + ':/children'
         #body = {
@@ -151,7 +152,7 @@ class OneDriveManager(object):
         #}
         #create_r = await self._request('POST', create_file_api, json=body)
 
-        create_session_api = 'https://graph.microsoft.com/v1.0/me/drive/root:' + self.folder_path + f'/{file_name}' + ':/createUploadSession'#.format(item_id=create_r['id'])
+        create_session_api = 'https://graph.microsoft.com/v1.0/me/drive/' + self._path_in_api_url(file_cloud_path) + '/createUploadSession'
         session_r = await self._request('POST', create_session_api)
 
         header = {
@@ -179,3 +180,15 @@ class OneDriveManager(object):
             if 'application/json' in resp.headers['Content-Type']:
                     return await resp.json()
             return await resp.text()
+
+    @staticmethod
+    def _path_in_api_url(path: str):
+        '''
+        Generate the path part of the Microsoft Graph API url\n
+        The return value won't startswith or endswith /
+        path: start with /
+        '''
+        if path == '/':
+            return 'root'
+        else:
+            return 'root:/' + '/'.join(path.split('/')) + ':'
