@@ -16,6 +16,5 @@ CLIENT_SECRET = env.str('CLIENT_SECRET')
 REDIRECT_PATH = env.str('REDIRECT_PATH')
 
 GOOGLE_CERT = env.str('GOOGLE_CERT')
-FIREBASE_NAME = env.str('FIREBASE_NAME', default='onedrive-bot')
 
 logging.basicConfig(level=logging.INFO)

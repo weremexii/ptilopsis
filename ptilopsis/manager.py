@@ -11,7 +11,7 @@ import logging
 
 class OneDriveManager(object):
     db = Firebase()
-    collection = db.collection(config.FIREBASE_NAME)
+    collection = db.collection('onedrive')
     initialize = True
 
     access_token = None
