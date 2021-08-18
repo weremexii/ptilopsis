@@ -1,6 +1,6 @@
-from . import config
-from .behavior import bot, dp, set_webhook_for_bot
-from .server import Server
+from ptilopsis import config
+from ptilopsis.behavior import bot, dp, set_webhook_for_bot
+from ptilopsis.server import Server
 
 from aiogram import executor
 

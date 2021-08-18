@@ -1,5 +1,5 @@
-from . import config
-from .firebase import Firebase
+from ptilopsis import config
+from ptilopsis.database.firestore import FirestoreDoucment
 
 import os
 import time
@@ -12,9 +12,6 @@ import logging
 collection_key = 'onedrive'
 
 class OneDriveManager(object):
-    db = Firebase()
-    collection = db.collection(collection_key)
-    initialize = True
 
     access_token = None
     refresh_token = None
@@ -23,7 +20,7 @@ class OneDriveManager(object):
 
     def __init__(self, user_id: int):
         self.user_id = user_id
-        self.document = self.collection.document(user_id)
+        self.document = FirestoreDoucment(collection_key, user_id)
 
     async def init(self) -> bool:
         user_token_info = await self.document.get()
@@ -38,17 +35,16 @@ class OneDriveManager(object):
         else:
             return False
 
-    async def folder_path_validation(self) -> bool:
+    async def folder_path_validation(self, folder_path) -> bool:
         # https://docs.microsoft.com/zh-cn/graph/api/driveitem-get?view=graph-rest-1.0&tabs=http
         # by path
-        if self.folder_path != '':
-            api = 'https://graph.microsoft.com/v1.0/me/drive/root:' + self.folder_path
-            r = await self._request('GET', api)
-            if 'error' in r.keys():
-                return False
-            return True
-        else:
+        
+        api = 'https://graph.microsoft.com/v1.0/me/drive/root:' + folder_path
+        r = await self._request('GET', api)
+        if 'error' in r.keys():
             return False
+        else:
+            return True
 
     @staticmethod
     def generate_login_url(user_id: int) -> str:
@@ -92,11 +88,12 @@ class OneDriveManager(object):
                     'access_token': r['access_token'],
                     'refresh_token': r['refresh_token'],
                     'expires_at': time.time() + r['expires_in'],
-                    'folder_path': ''
                 }
-                document = Firebase().collection(collection_key).document(user_id)
+                document = FirestoreDoucment(collection_key, user_id)
                 if not await document.exists():
-                    await document.insert(user_id, user_token_info)
+                    await document.set(user_token_info)
+                    # corresponding to init, or init causes KeyError
+                    await document.set({'folder_path': ''}, merge=True)
                 else:
                     await document.update(user_token_info)
             except Exception as error:
@@ -122,8 +119,7 @@ class OneDriveManager(object):
                 await self.document.update({
                     'access_token': self.access_token,
                     'refresh_token': self.refresh_token,
-                    'expires_at': self.expires_at,
-                    'folder_path': self.folder_path
+                    'expires_at': self.expires_at
                     })
             except:
                 logging.error(r)
@@ -131,13 +127,14 @@ class OneDriveManager(object):
     async def set_folder_path(self, folder_path: str) -> bool:
         folder_path = folder_path.rstrip('/')
         if folder_path.startswith('/'):
-            self.folder_path = folder_path
-            r = await self.folder_path_validation()
-            if r:
-                user_token_info:dict = await self.document.get()
-                user_token_info['folder_path'] = folder_path
-                await self.document.update(user_token_info)
-            return r
+            if await self.folder_path_validation(folder_path):
+                self.folder_path = folder_path
+                await self.document.update({
+                    'folder_path': self.folder_path
+                })
+                return True
+            else:
+                return False
         else:
             return False
 

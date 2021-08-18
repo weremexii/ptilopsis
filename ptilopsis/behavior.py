@@ -1,5 +1,5 @@
-from . import config
-from .manager import OneDriveManager
+from ptilopsis import config
+from ptilopsis.component.onedrive import OneDriveManager
 
 import os
 import logging
