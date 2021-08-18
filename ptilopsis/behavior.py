@@ -42,40 +42,36 @@ async def set_folder(message: types.Message):
 async def download(message: types.Message):
     manager = OneDriveManager(message.from_user.id)
     if await manager.init():
-        if not await manager.folder_path_validation():
-            await message.reply(text='Please set the correct folder path')
-            return
-        else:
-            content = getattr(message, message.content_type, None)
-            if content is not None:
-                # gain origin file from list
-                if is_instance_or_subclass(content, List):
-                    content = sorted(content, key=lambda file: file.file_size)[-1]
-                # download suitable content
-                if is_instance_or_subclass(content, Downloadable):
-                    if hasattr(content, 'file_name'):
-                        file_name = getattr(content, 'file_name')
-                    else:
-                        # Get file name through the File object generate by `get_file`
-                        file = await bot.get_file(content.file_id)
-                        file_name = file.file_path.split('/')[-1]
-                    file_path=f'data/{message.from_user.id}/{file_name}'
-                        
-                    if not os.path.exists(f'data/{message.from_user.id}'):
-                        os.makedirs(f'data/{message.from_user.id}')
+        content = getattr(message, message.content_type, None)
+        if content is not None:
+            # gain origin file from list
+            if is_instance_or_subclass(content, List):
+                content = sorted(content, key=lambda file: file.file_size)[-1]
+            # download suitable content
+            if is_instance_or_subclass(content, Downloadable):
+                if hasattr(content, 'file_name'):
+                    file_name = getattr(content, 'file_name')
+                else:
+                    # Get file name through the File object generate by `get_file`
+                    file = await bot.get_file(content.file_id)
+                    file_name = file.file_path.split('/')[-1]
+                file_path=f'data/{message.from_user.id}/{file_name}'
+                    
+                if not os.path.exists(f'data/{message.from_user.id}'):
+                    os.makedirs(f'data/{message.from_user.id}')
 
-                    try:
-                        des = await content.download(destination=file_path)
-                        logging.info(f'File download success, stored in {file_path}')
+                try:
+                    des = await content.download(destination=file_path)
+                    logging.info(f'File download success, stored in {file_path}')
 
-                        await manager.upload(des.name)
-                        logging.info('File upload success')
-                        
-                        await message.reply('Done!')
-                    except exceptions.FileIsTooBig as e:
-                        await message.reply(text='This file is too big')
-                    except Exception as e:
-                        logging.error(str(e))
+                    await manager.upload(des.name)
+                    logging.info('File upload success')
+                    
+                    await message.reply('Done!')
+                except exceptions.FileIsTooBig as e:
+                    await message.reply(text='This file is too big')
+                except Exception as e:
+                    logging.error(str(e))
     else:
         await message.reply(text='Please login first.')
 
